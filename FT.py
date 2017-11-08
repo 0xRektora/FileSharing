@@ -12,8 +12,12 @@ class FileHandler:
         self.filepath = filename
         self.filename = str(os.path.basename(filename))
         if not os.path.exists(self.filename):
-            print("[+]Creating file", self.filename)
-            self.writeb(b"")
+            if(chunk):
+                print("[+]Creating file", self.filename)
+                self.writeb(b"")
+            else:
+                print("[+]Creating file", self.filename, ":", os.path.getsize(self.filepath))
+                self.writeb(b"")
         elif os.path.exists(self.filename):
             if not os.path.exists(self.filepath):
                 print("[-]File already exist, changing name")
@@ -255,32 +259,50 @@ def Main(ip, port, files, recv=0, send=0, chunk=4096):
         elif send:
             launch_client(ip, port, files, chunk)
         else:
-            print["[-]No mode set"]
+            print("[-]No mode set")
             exit()
     except KeyboardInterrupt:
         print("\n[-]Quitting the program")
         exit()
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="default : ip localhost, port 9999, parse speed 20971520(bytes), checksum true")
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("192.168.1.1", 80))
+    IP = (str)(s.getsockname()[0])
+    s.close()
+    parser = argparse.ArgumentParser(description="default :  parse speed 20971520(bytes), checksum true\n,-f for files -d for dirs")
     parser.add_argument("IP", help="Destination IP", type=str)
-    parser.add_argument("PORT", help="Destination Port", type=int)
     parser.add_argument("-f", "--file", help="Files to send", type=str,
                         action="append")
+    parser.add_argument("-d", "--dir", help="directory selection", type=str, action="append")
     parser.add_argument("-ps", "--parse_speed",
-                        help="define the chunk of memory to send in bytes //default 2mb\\",
+                        help="define the chunk of memory to send in bytes /+\default 2mb|=/+\"",
                         type=int, default=20971520)
     parser.add_argument("-nc", "--nochecksum", help="Deactivate the checksum step", action="store_const", default=False, const=True)
     parser.add_argument("-sm", "--servermode", help="Bring the server mode", action="store_const", const=launch_server, default=False)
     parser.add_argument("-cm", "--clientmode", help="Bring the client mode", action="store_const", const=launch_client, default=False)
     args = parser.parse_args()
 
+    files = []
+    if(args.dir != None):
+            for i in args.dir:
+                #files = [f for f in os.listdir(i) if (os.path.isfile(os.path.join(i, f)))]
+                for j in os.listdir(i):
+                    files.append(os.path.join(i, j))
+            if(args.file != None):
+                for i in args.file:
+                    files.append(i)
+            for i in files:
+                print(i)
+
     if args.servermode:
         print("[+]Launching server mode")
-        Main(args.IP, args.PORT, args.file, recv=1, chunk=args.parse_speed)
+        Main(IP, 9999, files, recv=1, chunk=args.parse_speed)
     elif args.clientmode != False:
         print("[+]Launching client mode")
-        Main(args.IP, args.PORT, args.file, send=1, chunk = args.parse_speed)
+        os.system("pause")
+        Main(args.IP, 9999, files, send=1, chunk = args.parse_speed)
     else:
         print("[+]No mode choosen.")
         exit()
